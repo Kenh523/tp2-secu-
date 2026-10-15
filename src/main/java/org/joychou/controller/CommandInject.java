@@ -24,11 +24,7 @@ public class CommandInject {
     @GetMapping("/codeinject")
     public String codeInject(String filepath) throws IOException {
 
-        String[] cmdList = new String[]{"ls", "-la", "--", filepath};
-        ProcessBuilder builder = new ProcessBuilder(cmdList);
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
-        return WebUtils.convertStreamToString(process.getInputStream());
+        return listDirectory(filepath);
     }
 
     /**
@@ -57,10 +53,20 @@ public class CommandInject {
         if (null == filterFilePath) {
             return "Bad boy. I got u.";
         }
-        String[] cmdList = new String[]{"ls", "-la", "--", filterFilePath};
-        ProcessBuilder builder = new ProcessBuilder(cmdList);
-        builder.redirectErrorStream(true);
-        Process process = builder.start();
-        return WebUtils.convertStreamToString(process.getInputStream());
+        return listDirectory(filterFilePath);
+    }
+
+    // Liste un dossier en Java pur (aucune commande système), confiné à /tmp
+    private String listDirectory(String path) throws IOException {
+        java.nio.file.Path base = java.nio.file.Paths.get(System.getProperty("java.io.tmpdir")).toRealPath();
+        java.nio.file.Path dir = base.resolve(path).normalize();
+        if (!dir.startsWith(base) || !java.nio.file.Files.isDirectory(dir)) {
+            return "Invalid directory";
+        }
+        StringBuilder sb = new StringBuilder();
+        try (java.util.stream.Stream<java.nio.file.Path> files = java.nio.file.Files.list(dir)) {
+            files.forEach(f -> sb.append(f.getFileName()).append('\n'));
+        }
+        return sb.toString();
     }
 }
