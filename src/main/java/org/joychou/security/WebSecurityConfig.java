@@ -110,8 +110,14 @@ public class WebSecurityConfig extends WebSecurityConfigurerAdapter {
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {
         auth
                 .inMemoryAuthentication()
-                .withUser("joychou").password("joychou123").roles("USER").and()
-                .withUser("admin").password("admin123").roles("USER", "ADMIN");
+                .withUser("joychou").password(secret("APP_USER_PASSWORD")).roles("USER").and()
+                .withUser("admin").password(secret("APP_ADMIN_PASSWORD")).roles("USER", "ADMIN");
+    }
+
+    // Les secrets ne sont plus dans le code : variable d'environnement, sinon mot de passe aléatoire
+    private static String secret(String envName) {
+        String value = System.getenv(envName);
+        return (value != null && !value.isEmpty()) ? value : java.util.UUID.randomUUID().toString();
     }
 }
 
