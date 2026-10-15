@@ -46,7 +46,7 @@ public class Deserialize {
         byte[] decoded = Base64.getDecoder().decode(rememberMe);
 
         ByteArrayInputStream bytes = new ByteArrayInputStream(decoded);
-        ObjectInputStream in = new ObjectInputStream(bytes);
+        ObjectInputStream in = new SafeObjectInputStream(bytes);
         in.readObject();
         in.close();
 
@@ -73,7 +73,7 @@ public class Deserialize {
         ByteArrayInputStream bytes = new ByteArrayInputStream(decoded);
 
         try {
-            AntObjectInputStream in = new AntObjectInputStream(bytes);  // throw InvalidClassException
+            ObjectInputStream in = new SafeObjectInputStream(bytes);  // throw InvalidClassException
             in.readObject();
             in.close();
         } catch (InvalidClassException e) {
@@ -88,7 +88,7 @@ public class Deserialize {
     @RequestMapping("/jackson")
     public void Jackson(String payload) {
         ObjectMapper mapper = new ObjectMapper();
-        mapper.enableDefaultTyping();
+        // enableDefaultTyping() supprimé : le JSON ne doit pas choisir les classes instanciées
         try {
             Object obj = mapper.readValue(payload, Object.class);
             mapper.writeValueAsString(obj);
@@ -97,4 +97,23 @@ public class Deserialize {
         }
     }
 
+
+    // Liste blanche : seules ces classes peuvent être désérialisées
+    private static class SafeObjectInputStream extends ObjectInputStream {
+        private static final java.util.Set<String> ALLOWED =
+                java.util.Collections.singleton("java.lang.String");
+
+        SafeObjectInputStream(java.io.InputStream in) throws IOException {
+            super(in);
+        }
+
+        @Override
+        protected Class<?> resolveClass(java.io.ObjectStreamClass desc)
+                throws IOException, ClassNotFoundException {
+            if (!ALLOWED.contains(desc.getName())) {
+                throw new InvalidClassException(desc.getName(), "Classe non autorisée");
+            }
+            return super.resolveClass(desc);
+        }
+    }
 }
