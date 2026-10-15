@@ -40,13 +40,14 @@ public class PathTraversal {
         logger.info("Working directory: " + System.getProperty("user.dir"));
         logger.info("File path: " + imgFile);
 
-        File f = new File(imgFile);
-        if (f.exists() && !f.isDirectory()) {
-            byte[] data = Files.readAllBytes(Paths.get(imgFile));
-            return new String(Base64.encodeBase64(data));
-        } else {
-            return "File doesn't exist or is not a file.";
+        java.nio.file.Path base = Paths.get(System.getenv().getOrDefault("IMAGE_BASE_DIR",
+                System.getProperty("user.dir") + File.separator + "images")).toAbsolutePath().normalize();
+        java.nio.file.Path target = base.resolve(imgFile).normalize();
+        if (!target.startsWith(base) || !Files.isRegularFile(target)) {
+            return "File doesn't exist or is not allowed.";
         }
+        byte[] data = Files.readAllBytes(target);
+        return new String(Base64.encodeBase64(data), StandardCharsets.US_ASCII);
     }
 
     public static void main(String[] argv) throws IOException {
